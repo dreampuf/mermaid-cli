@@ -2,7 +2,7 @@ use clap::{Parser, ValueEnum};
 
 #[derive(Parser, Debug)]
 #[command(name = "mermaid-it")]
-#[command(author = "Your Name")]
+#[command(author = "drempuf <soddyque@gmail.com>")]
 #[command(version = "0.1.0")]
 #[command(about = "Render Mermaid diagrams to various image formats", long_about = None)]
 pub struct Cli {
