@@ -51,5 +51,4 @@ pub struct Cli {
 pub enum OutputFormat {
     Svg,
     Png,
-    Pdf,
 }

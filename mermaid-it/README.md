@@ -6,7 +6,7 @@ A powerful CLI tool to render Mermaid diagrams using Rust and deno_core as the J
 
 - 🚀 **Fast rendering** using embedded Mermaid.js
 - 📦 **Self-contained** - Mermaid.js is embedded in the binary
-- 🎨 **Multiple output formats** - SVG, PNG, and PDF
+- 🎨 **Multiple output formats** - SVG and PNG
 - 🔧 **Customizable** - Support for custom Mermaid.js versions
 - 📏 **Configurable output** - Set dimensions, scale, background, and themes
 - 🖥️ **Cross-platform** - Works on Linux, macOS, and Windows
@@ -55,9 +55,6 @@ mermaid-it diagram.mmd -o output.svg
 
 # Generate PNG
 mermaid-it diagram.mmd -o output.png -f png
-
-# Generate PDF
-mermaid-it diagram.mmd -o output.pdf -f pdf
 ```
 
 ### Customization Options
@@ -84,7 +81,7 @@ mermaid-it diagram.mmd --custom-mermaid ./custom-mermaid.js -o output.svg
 ```
 Options:
   -o, --output <OUTPUT>              Output file path [default: output.svg]
-  -f, --format <FORMAT>              Output format [default: svg] [possible values: svg, png, pdf]
+  -f, --format <FORMAT>              Output format [default: svg] [possible values: svg, png]
   -W, --width <WIDTH>                Width of the output image in pixels [default: 800]
   -H, --height <HEIGHT>              Height of the output image in pixels [default: 600]
   -b, --background <BACKGROUND>      Background color (CSS color value) [default: white]
