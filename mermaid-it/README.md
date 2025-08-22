@@ -6,7 +6,7 @@ A powerful CLI tool to render Mermaid diagrams using Rust and deno_core as the J
 
 - 🚀 **Fast rendering** using embedded Mermaid.js
 - 📦 **Self-contained** - Mermaid.js is embedded in the binary
-- 🎨 **Multiple output formats** - SVG and PNG
+- 🎨 **Multiple output formats** - SVG, PNG, JPG, WebP, and GIF
 - 🔧 **Customizable** - Support for custom Mermaid.js versions
 - 📏 **Configurable output** - Set dimensions, scale, background, and themes
 - 🖥️ **Cross-platform** - Works on Linux, macOS, and Windows
@@ -55,6 +55,15 @@ mermaid-it diagram.mmd -o output.svg
 
 # Generate PNG
 mermaid-it diagram.mmd -o output.png -f png
+
+# Generate JPG
+mermaid-it diagram.mmd -o output.jpg -f jpg
+
+# Generate WebP
+mermaid-it diagram.mmd -o output.webp -f webp
+
+# Generate GIF
+mermaid-it diagram.mmd -o output.gif -f gif
 ```
 
 ### Customization Options
@@ -81,7 +90,7 @@ mermaid-it diagram.mmd --custom-mermaid ./custom-mermaid.js -o output.svg
 ```
 Options:
   -o, --output <OUTPUT>              Output file path [default: output.svg]
-  -f, --format <FORMAT>              Output format [default: svg] [possible values: svg, png]
+  -f, --format <FORMAT>              Output format [default: svg] [possible values: svg, png, jpg, webp, gif]
   -W, --width <WIDTH>                Width of the output image in pixels [default: 800]
   -H, --height <HEIGHT>              Height of the output image in pixels [default: 600]
   -b, --background <BACKGROUND>      Background color (CSS color value) [default: white]
@@ -151,7 +160,7 @@ gantt
 
 Render it:
 ```bash
-mermaid-it gantt.mmd -o gantt.pdf -f pdf -W 1200
+mermaid-it gantt.mmd -o gantt.png -f png -W 1200
 ```
 
 ## Using Custom Mermaid.js
@@ -202,23 +211,6 @@ mermaid-it/
 ```
 
 ## Troubleshooting
-
-### PDF Generation
-
-For PDF generation, the tool attempts to use `rsvg-convert` if available on your system. For best results, install it:
-
-```bash
-# Ubuntu/Debian
-sudo apt-get install librsvg2-bin
-
-# macOS
-brew install librsvg
-
-# Fedora
-sudo dnf install librsvg2-tools
-```
-
-If `rsvg-convert` is not available, a basic PDF will be generated with embedded SVG.
 
 ### Large Diagrams
 

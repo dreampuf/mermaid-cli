@@ -51,4 +51,7 @@ pub struct Cli {
 pub enum OutputFormat {
     Svg,
     Png,
+    Jpg,
+    Webp,
+    Gif,
 }
