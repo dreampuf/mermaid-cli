@@ -121,7 +121,7 @@ example-swift:
 
 example-go:
 	@echo "Go example:"
-	@echo "  import \"github.com/yourusername/mermaid-it/bindings/go\""
+	@echo "  import \"github.com/dreampuf/mermaid-it/bindings/go\""
 	@echo "  renderer, _ := mermaid.NewRenderer()"
 	@echo "  defer renderer.Close()"
 	@echo "  data, _ := renderer.Render(\"graph TD; A-->B;\", mermaid.DefaultOptions())"

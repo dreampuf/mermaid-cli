@@ -23,7 +23,7 @@ Mermaid-it provides native bindings for multiple programming languages through *
 | **Ruby** | ✅ Ready | RubyGems | `require 'mermaid_it'` |
 | **Kotlin** | ✅ Ready | Maven | `import mermaid_it.*` |
 | **Swift** | ✅ Ready | SwiftPM | `import MermaidIt` |
-| **Go** | ✅ Ready | Go Modules | `import "github.com/.../mermaid-it/bindings/go"` |
+| **Go** | ✅ Ready | Go Modules | `import "github.com/dreampuf/mermaid-it/bindings/go"` |
 | **Java** | ✅ Ready | Maven (via Kotlin) | `import mermaid_it.*;` |
 | **JavaScript** | ✅ Ready | npm | `import { MermaidRenderer } from 'mermaid-it-wasm'` |
 
@@ -54,7 +54,7 @@ gem install mermaid-it
 
 #### Go
 ```bash
-go get github.com/yourusername/mermaid-it/bindings/go
+go get github.com/dreampuf/mermaid-it/bindings/go
 ```
 
 #### JavaScript/TypeScript
@@ -97,7 +97,7 @@ svg = renderer.render_to_string("graph TD; A-->B;", MermaidIt::RenderOptions.new
 
 #### Go
 ```go
-import "github.com/yourusername/mermaid-it/bindings/go"
+import "github.com/dreampuf/mermaid-it/bindings/go"
 
 renderer, _ := mermaid.NewRenderer()
 defer renderer.Close()

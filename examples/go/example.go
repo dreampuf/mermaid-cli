@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 	
-	mermaid "../../bindings/go"
+	mermaid "github.com/dreampuf/mermaid-it/bindings/go"
 )
 
 func main() {

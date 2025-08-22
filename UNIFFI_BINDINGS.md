@@ -168,7 +168,7 @@ package main
 import (
     "fmt"
     "io/ioutil"
-    "github.com/yourusername/mermaid-it/bindings/go"
+    "github.com/dreampuf/mermaid-it/bindings/go"
 )
 
 func main() {
@@ -295,7 +295,7 @@ Sets custom Mermaid.js content for rendering.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mermaid-it
+git clone https://github.com/dreampuf/mermaid-it
 cd mermaid-it
 
 # Build the Rust library
@@ -348,7 +348,7 @@ swift package init --type library
 ### Go
 ```bash
 # The Go package can be imported directly
-go get github.com/yourusername/mermaid-it/bindings/go
+go get github.com/dreampuf/mermaid-it/bindings/go
 ```
 
 ## Performance Comparison

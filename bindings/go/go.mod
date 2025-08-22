@@ -1,4 +1,4 @@
-module github.com/yourusername/mermaid-it/bindings/go
+module github.com/dreampuf/mermaid-it/bindings/go
 
 go 1.19
 
