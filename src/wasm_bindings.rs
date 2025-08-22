@@ -1,8 +1,9 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::js_sys;
-use crate::MermaidIt;
+use crate::{MermaidIt, OutputFormat, RenderOptions};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use serde_wasm_bindgen;
 
 // Configure console error panic hook for better error messages in the browser
 #[cfg(feature = "wasm")]
@@ -40,167 +41,91 @@ impl WasmMermaidRenderer {
         Ok(())
     }
     
-    /// Render diagram to SVG
-    #[wasm_bindgen(js_name = renderSvg)]
-    pub async fn render_svg(
+    /// Render diagram to specified format
+    /// Options should be a JavaScript object with: format, width, height, background, theme, scale, quality
+    #[wasm_bindgen(js_name = render)]
+    pub async fn render(
         &self,
         diagram_code: String,
-        width: Option<u32>,
-        height: Option<u32>,
-        background: Option<String>,
-        theme: Option<String>,
-        scale: Option<f32>,
-    ) -> Result<String, JsValue> {
+        options: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        // Parse options from JavaScript object
+        let opts: RenderOptions = if options.is_undefined() || options.is_null() {
+            RenderOptions::default()
+        } else {
+            serde_wasm_bindgen::from_value(options)
+                .map_err(|e| JsValue::from_str(&format!("Invalid options: {}", e)))?
+        };
+        
+        // Get format from options or default to SVG
+        let format_str = js_sys::Reflect::get(&options, &JsValue::from_str("format"))
+            .ok()
+            .and_then(|v| v.as_string())
+            .unwrap_or_else(|| "svg".to_string());
+        
+        let output_format = OutputFormat::from_str(&format_str)
+            .ok_or_else(|| JsValue::from_str(&format!("Unsupported format: {}", format_str)))?;
+        
         let mut renderer = self.inner.lock().await;
         
-        let svg = renderer.render_svg(
-            &diagram_code,
-            width.unwrap_or(800),
-            height.unwrap_or(600),
-            &background.unwrap_or_else(|| "white".to_string()),
-            &theme.unwrap_or_else(|| "default".to_string()),
-            scale.unwrap_or(1.0),
-        )
-        .await
-        .map_err(|e| JsValue::from_str(&format!("Render failed: {}", e)))?;
+        let data = renderer.render(&diagram_code, output_format, &opts)
+            .await
+            .map_err(|e| JsValue::from_str(&format!("Render failed: {}", e)))?;
         
-        Ok(svg)
+        // Return string for SVG, Uint8Array for binary formats
+        match output_format {
+            OutputFormat::Svg => {
+                let svg_str = String::from_utf8(data)
+                    .map_err(|e| JsValue::from_str(&format!("Invalid UTF-8: {}", e)))?;
+                Ok(JsValue::from_str(&svg_str))
+            },
+            _ => {
+                Ok(js_sys::Uint8Array::from(&data[..]).into())
+            }
+        }
     }
     
-    /// Render diagram to PNG (returns Uint8Array)
-    #[wasm_bindgen(js_name = renderPng)]
-    pub async fn render_png(
-        &self,
-        diagram_code: String,
-        width: Option<u32>,
-        height: Option<u32>,
-        background: Option<String>,
-        theme: Option<String>,
-        scale: Option<f32>,
-    ) -> Result<js_sys::Uint8Array, JsValue> {
-        let mut renderer = self.inner.lock().await;
-        
-        let png_data = renderer.render_png(
-            &diagram_code,
-            width.unwrap_or(800),
-            height.unwrap_or(600),
-            &background.unwrap_or_else(|| "white".to_string()),
-            &theme.unwrap_or_else(|| "default".to_string()),
-            scale.unwrap_or(1.0),
-        )
-        .await
-        .map_err(|e| JsValue::from_str(&format!("Render failed: {}", e)))?;
-        
-        Ok(js_sys::Uint8Array::from(&png_data[..]))
-    }
-    
-    /// Render diagram to JPEG (returns Uint8Array)
-    #[wasm_bindgen(js_name = renderJpg)]
-    pub async fn render_jpg(
-        &self,
-        diagram_code: String,
-        width: Option<u32>,
-        height: Option<u32>,
-        background: Option<String>,
-        theme: Option<String>,
-        scale: Option<f32>,
-        quality: Option<u8>,
-    ) -> Result<js_sys::Uint8Array, JsValue> {
-        let mut renderer = self.inner.lock().await;
-        
-        let jpg_data = renderer.render_jpg(
-            &diagram_code,
-            width.unwrap_or(800),
-            height.unwrap_or(600),
-            &background.unwrap_or_else(|| "white".to_string()),
-            &theme.unwrap_or_else(|| "default".to_string()),
-            scale.unwrap_or(1.0),
-            quality.unwrap_or(90),
-        )
-        .await
-        .map_err(|e| JsValue::from_str(&format!("Render failed: {}", e)))?;
-        
-        Ok(js_sys::Uint8Array::from(&jpg_data[..]))
-    }
-    
-    /// Render diagram to WebP (returns Uint8Array)
-    #[wasm_bindgen(js_name = renderWebp)]
-    pub async fn render_webp(
-        &self,
-        diagram_code: String,
-        width: Option<u32>,
-        height: Option<u32>,
-        background: Option<String>,
-        theme: Option<String>,
-        scale: Option<f32>,
-        quality: Option<f32>,
-    ) -> Result<js_sys::Uint8Array, JsValue> {
-        let mut renderer = self.inner.lock().await;
-        
-        let webp_data = renderer.render_webp(
-            &diagram_code,
-            width.unwrap_or(800),
-            height.unwrap_or(600),
-            &background.unwrap_or_else(|| "white".to_string()),
-            &theme.unwrap_or_else(|| "default".to_string()),
-            scale.unwrap_or(1.0),
-            quality.unwrap_or(90.0),
-        )
-        .await
-        .map_err(|e| JsValue::from_str(&format!("Render failed: {}", e)))?;
-        
-        Ok(js_sys::Uint8Array::from(&webp_data[..]))
-    }
-    
-    /// Render diagram to Data URL (for direct use in img tags)
+    /// Render diagram to a base64 data URL
     #[wasm_bindgen(js_name = renderDataUrl)]
     pub async fn render_data_url(
         &self,
         diagram_code: String,
-        format: Option<String>,
-        width: Option<u32>,
-        height: Option<u32>,
-        background: Option<String>,
-        theme: Option<String>,
-        scale: Option<f32>,
-        quality: Option<u8>,
+        options: JsValue,
     ) -> Result<String, JsValue> {
-        let fmt = format.unwrap_or_else(|| "svg".to_string());
+        // Parse options
+        let opts: RenderOptions = if options.is_undefined() || options.is_null() {
+            RenderOptions::default()
+        } else {
+            serde_wasm_bindgen::from_value(options.clone())
+                .map_err(|e| JsValue::from_str(&format!("Invalid options: {}", e)))?
+        };
         
-        match fmt.as_str() {
-            "svg" => {
-                let svg = self.render_svg(diagram_code, width, height, background, theme, scale).await?;
-                let encoded = base64::encode(svg.as_bytes());
-                Ok(format!("data:image/svg+xml;base64,{}", encoded))
-            },
-            "png" => {
-                let png_data = self.render_png(diagram_code, width, height, background, theme, scale).await?;
-                let bytes = png_data.to_vec();
-                let encoded = base64::encode(&bytes);
-                Ok(format!("data:image/png;base64,{}", encoded))
-            },
-            "jpg" | "jpeg" => {
-                let jpg_data = self.render_jpg(diagram_code, width, height, background, theme, scale, quality).await?;
-                let bytes = jpg_data.to_vec();
-                let encoded = base64::encode(&bytes);
-                Ok(format!("data:image/jpeg;base64,{}", encoded))
-            },
-            "webp" => {
-                let webp_data = self.render_webp(
-                    diagram_code, 
-                    width, 
-                    height, 
-                    background, 
-                    theme, 
-                    scale, 
-                    quality.map(|q| q as f32)
-                ).await?;
-                let bytes = webp_data.to_vec();
-                let encoded = base64::encode(&bytes);
-                Ok(format!("data:image/webp;base64,{}", encoded))
-            },
-            _ => Err(JsValue::from_str(&format!("Unsupported format: {}", fmt)))
-        }
+        // Get format from options
+        let format_str = js_sys::Reflect::get(&options, &JsValue::from_str("format"))
+            .ok()
+            .and_then(|v| v.as_string())
+            .unwrap_or_else(|| "svg".to_string());
+        
+        let output_format = OutputFormat::from_str(&format_str)
+            .ok_or_else(|| JsValue::from_str(&format!("Unsupported format: {}", format_str)))?;
+        
+        let mut renderer = self.inner.lock().await;
+        
+        let data = renderer.render(&diagram_code, output_format, &opts)
+            .await
+            .map_err(|e| JsValue::from_str(&format!("Render failed: {}", e)))?;
+        
+        let encoded = base64::encode(&data);
+        
+        let mime_type = match output_format {
+            OutputFormat::Svg => "image/svg+xml",
+            OutputFormat::Png => "image/png",
+            OutputFormat::Jpg | OutputFormat::Jpeg => "image/jpeg",
+            OutputFormat::Webp => "image/webp",
+            OutputFormat::Gif => "image/gif",
+        };
+        
+        Ok(format!("data:{};base64,{}", mime_type, encoded))
     }
 }
 

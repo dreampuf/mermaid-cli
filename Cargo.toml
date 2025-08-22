@@ -35,23 +35,18 @@ wasm-bindgen = { version = "0.2", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
 js-sys = { version = "0.3", optional = true }
 web-sys = { version = "0.3", optional = true }
-
-# Node.js bindings
-napi = { version = "2", features = ["async", "napi6"], optional = true }
-napi-derive = { version = "2", optional = true }
+serde-wasm-bindgen = { version = "0.6", optional = true }
 
 [build-dependencies]
 reqwest = { version = "0.12", features = ["blocking"] }
 anyhow = "1.0"
 pyo3-build-config = { version = "0.22", optional = true }
-napi-build = { version = "2", optional = true }
 
 [features]
 default = ["cli"]
 cli = ["clap"]
 python = ["pyo3", "pyo3-build-config"]
-wasm = ["wasm-bindgen", "wasm-bindgen-futures", "js-sys", "web-sys"]
-nodejs = ["napi", "napi-derive", "napi-build"]
+wasm = ["wasm-bindgen", "wasm-bindgen-futures", "js-sys", "web-sys", "serde-wasm-bindgen"]
 
 [[bin]]
 name = "mermaid-it"
@@ -62,8 +57,7 @@ required-features = ["cli"]
 members = [
     ".",
     "bindings/python",
-    "bindings/wasm", 
-    "bindings/nodejs"
+    "bindings/wasm"
 ]
 
 [profile.release]

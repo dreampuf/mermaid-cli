@@ -4,14 +4,6 @@ WebAssembly bindings for mermaid-it, enabling Mermaid diagram rendering in brows
 
 ## Installation
 
-### For Browser
-
-```bash
-npm install mermaid-it-wasm
-```
-
-### For Node.js
-
 ```bash
 npm install mermaid-it-wasm
 ```
@@ -38,15 +30,29 @@ async function renderDiagram() {
         B -->|No| D[Debug]
     `;
     
-    // Render to SVG
-    const svg = await renderer.renderSvg(diagram, 800, 600, 'white', 'default', 1.0);
+    // Render to SVG (default)
+    const svg = await renderer.render(diagram, {
+        format: 'svg',
+        width: 800,
+        height: 600,
+        theme: 'default'
+    });
     document.getElementById('output').innerHTML = svg;
     
     // Render to PNG (returns Uint8Array)
-    const pngData = await renderer.renderPng(diagram, 1024, 768);
+    const pngData = await renderer.render(diagram, {
+        format: 'png',
+        width: 1024,
+        height: 768,
+        scale: 2.0
+    });
     
     // Create data URL for display
-    const dataUrl = await renderer.renderDataUrl(diagram, 'png', 800, 600);
+    const dataUrl = await renderer.renderDataUrl(diagram, {
+        format: 'png',
+        width: 800,
+        height: 600
+    });
     const img = document.createElement('img');
     img.src = dataUrl;
     document.body.appendChild(img);
@@ -55,39 +61,10 @@ async function renderDiagram() {
 renderDiagram();
 ```
 
-### Browser (Script Tag)
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <script type="module">
-        import init, { WasmMermaidRenderer } from './node_modules/mermaid-it-wasm/mermaid_it_wasm.js';
-        
-        async function setup() {
-            await init();
-            window.renderer = new WasmMermaidRenderer();
-        }
-        
-        setup();
-    </script>
-</head>
-<body>
-    <div id="output"></div>
-    <script>
-        async function render() {
-            const svg = await window.renderer.renderSvg('graph TD; A-->B;');
-            document.getElementById('output').innerHTML = svg;
-        }
-    </script>
-</body>
-</html>
-```
-
 ### Node.js
 
 ```javascript
-const { WasmMermaidRenderer } = require('mermaid-it-wasm/nodejs');
+const { WasmMermaidRenderer } = require('mermaid-it-wasm');
 
 async function main() {
     const renderer = new WasmMermaidRenderer();
@@ -98,8 +75,20 @@ async function main() {
         Bob-->>Alice: Hi!
     `;
     
-    const svg = await renderer.renderSvg(diagram);
+    // Render to SVG
+    const svg = await renderer.render(diagram, { format: 'svg' });
     console.log(svg);
+    
+    // Render to PNG
+    const pngData = await renderer.render(diagram, { 
+        format: 'png',
+        width: 1200,
+        height: 800 
+    });
+    // pngData is a Uint8Array
+    
+    const fs = require('fs');
+    fs.writeFileSync('diagram.png', Buffer.from(pngData));
 }
 
 main();
@@ -117,52 +106,33 @@ const renderer = new WasmMermaidRenderer();
 
 #### Methods
 
-##### async renderSvg(diagramCode, width?, height?, background?, theme?, scale?)
+##### async render(diagramCode, options?)
 
-Render a diagram to SVG format.
+Render a diagram to the specified format.
 
 **Parameters:**
 - `diagramCode` (string): The Mermaid diagram code
-- `width` (number, optional): Width in pixels (default: 800)
-- `height` (number, optional): Height in pixels (default: 600)
-- `background` (string, optional): Background color (default: "white")
-- `theme` (string, optional): Mermaid theme (default: "default")
-- `scale` (number, optional): Scale factor (default: 1.0)
+- `options` (object, optional): Rendering options
+  - `format` (string): Output format - "svg", "png", "jpg", "jpeg", "webp", "gif" (default: "svg")
+  - `width` (number): Width in pixels (default: 800)
+  - `height` (number): Height in pixels (default: 600)
+  - `background` (string): Background color (default: "white")
+  - `theme` (string): Mermaid theme (default: "default")
+  - `scale` (number): Scale factor (default: 1.0)
+  - `quality` (number): Quality for JPEG/WebP formats, 0-100 (default: 90)
 
-**Returns:** Promise<string> - The SVG content
+**Returns:**
+- For SVG: `Promise<string>` - The SVG content
+- For other formats: `Promise<Uint8Array>` - The image data
 
-##### async renderPng(diagramCode, width?, height?, background?, theme?, scale?)
-
-Render a diagram to PNG format.
-
-**Returns:** Promise<Uint8Array> - The PNG image data
-
-##### async renderJpg(diagramCode, width?, height?, background?, theme?, scale?, quality?)
-
-Render a diagram to JPEG format.
-
-**Parameters:**
-- `quality` (number, optional): JPEG quality 0-100 (default: 90)
-
-**Returns:** Promise<Uint8Array> - The JPEG image data
-
-##### async renderWebp(diagramCode, width?, height?, background?, theme?, scale?, quality?)
-
-Render a diagram to WebP format.
-
-**Parameters:**
-- `quality` (number, optional): WebP quality 0-100 (default: 90)
-
-**Returns:** Promise<Uint8Array> - The WebP image data
-
-##### async renderDataUrl(diagramCode, format?, width?, height?, background?, theme?, scale?, quality?)
+##### async renderDataUrl(diagramCode, options?)
 
 Render a diagram to a base64 data URL.
 
 **Parameters:**
-- `format` (string, optional): Output format ("svg", "png", "jpg", "webp") (default: "svg")
+- Same as `render()`
 
-**Returns:** Promise<string> - The data URL
+**Returns:** `Promise<string>` - The data URL
 
 ##### async setCustomMermaid(jsContent)
 
@@ -179,8 +149,8 @@ Set custom Mermaid.js content for rendering.
 import React, { useEffect, useState } from 'react';
 import init, { WasmMermaidRenderer } from 'mermaid-it-wasm';
 
-function MermaidDiagram({ code }) {
-    const [svg, setSvg] = useState('');
+function MermaidDiagram({ code, format = 'svg', ...options }) {
+    const [output, setOutput] = useState(null);
     const [renderer, setRenderer] = useState(null);
     
     useEffect(() => {
@@ -193,29 +163,59 @@ function MermaidDiagram({ code }) {
     
     useEffect(() => {
         if (renderer && code) {
-            renderer.renderSvg(code).then(setSvg);
+            renderer.render(code, { format, ...options })
+                .then(data => {
+                    if (format === 'svg') {
+                        setOutput(data);
+                    } else {
+                        // Convert Uint8Array to data URL for images
+                        const blob = new Blob([data], { type: `image/${format}` });
+                        const url = URL.createObjectURL(blob);
+                        setOutput(url);
+                    }
+                });
         }
-    }, [renderer, code]);
+    }, [renderer, code, format, options]);
     
-    return <div dangerouslySetInnerHTML={{ __html: svg }} />;
+    if (format === 'svg') {
+        return <div dangerouslySetInnerHTML={{ __html: output }} />;
+    } else {
+        return output ? <img src={output} alt="Mermaid diagram" /> : null;
+    }
 }
+
+// Usage
+<MermaidDiagram 
+    code="graph TD; A-->B;" 
+    format="png"
+    width={1024}
+    height={768}
+    theme="dark"
+/>
 ```
 
 ### Vue Component
 
 ```vue
 <template>
-    <div v-html="svg"></div>
+    <div v-if="format === 'svg'" v-html="output"></div>
+    <img v-else-if="output" :src="output" alt="Mermaid diagram" />
 </template>
 
 <script>
 import init, { WasmMermaidRenderer } from 'mermaid-it-wasm';
 
 export default {
-    props: ['code'],
+    props: {
+        code: String,
+        format: { type: String, default: 'svg' },
+        width: { type: Number, default: 800 },
+        height: { type: Number, default: 600 },
+        theme: { type: String, default: 'default' }
+    },
     data() {
         return {
-            svg: '',
+            output: null,
             renderer: null
         };
     },
@@ -225,19 +225,72 @@ export default {
         this.render();
     },
     watch: {
-        code() {
-            this.render();
-        }
+        code() { this.render(); },
+        format() { this.render(); },
+        width() { this.render(); },
+        height() { this.render(); },
+        theme() { this.render(); }
     },
     methods: {
         async render() {
             if (this.renderer && this.code) {
-                this.svg = await this.renderer.renderSvg(this.code);
+                const data = await this.renderer.render(this.code, {
+                    format: this.format,
+                    width: this.width,
+                    height: this.height,
+                    theme: this.theme
+                });
+                
+                if (this.format === 'svg') {
+                    this.output = data;
+                } else {
+                    // Convert to data URL
+                    const blob = new Blob([data], { type: `image/${this.format}` });
+                    this.output = URL.createObjectURL(blob);
+                }
             }
         }
     }
 };
 </script>
+```
+
+### Express.js Server
+
+```javascript
+const express = require('express');
+const { WasmMermaidRenderer } = require('mermaid-it-wasm');
+
+const app = express();
+app.use(express.json());
+
+let renderer;
+
+// Initialize renderer on startup
+(async () => {
+    renderer = new WasmMermaidRenderer();
+})();
+
+app.post('/render', async (req, res) => {
+    const { diagram, format = 'svg', ...options } = req.body;
+    
+    try {
+        const data = await renderer.render(diagram, { format, ...options });
+        
+        if (format === 'svg') {
+            res.type('image/svg+xml').send(data);
+        } else {
+            // Convert Uint8Array to Buffer for binary formats
+            res.type(`image/${format}`).send(Buffer.from(data));
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.listen(3000, () => {
+    console.log('Mermaid renderer service running on port 3000');
+});
 ```
 
 ## Building from Source
@@ -255,6 +308,13 @@ wasm-pack build --target nodejs --out-dir pkg-node
 # Build for bundlers (webpack, etc.)
 wasm-pack build --target bundler --out-dir pkg-bundler
 ```
+
+## Performance
+
+- **Fast**: Near-native performance with WebAssembly
+- **Small**: Minimal bundle size with optimized WASM
+- **Universal**: Works in browsers, Node.js, and Deno
+- **No Dependencies**: Self-contained WASM module
 
 ## License
 

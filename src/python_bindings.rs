@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 use pyo3::exceptions::PyRuntimeError;
-use crate::MermaidIt;
+use crate::{MermaidIt, OutputFormat, RenderOptions};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -39,119 +39,12 @@ impl PyMermaidRenderer {
         })
     }
     
-    /// Render diagram to SVG
-    #[pyo3(signature = (diagram_code, width=800, height=600, background="white", theme="default", scale=1.0))]
-    fn render_svg(
-        &self,
-        diagram_code: &str,
-        width: u32,
-        height: u32,
-        background: &str,
-        theme: &str,
-        scale: f32,
-    ) -> PyResult<String> {
-        let inner = self.inner.clone();
-        let diagram = diagram_code.to_string();
-        let bg = background.to_string();
-        let th = theme.to_string();
-        
-        self.runtime.block_on(async move {
-            let mut renderer = inner.lock().await;
-            renderer.render_svg(&diagram, width, height, &bg, &th, scale)
-                .await
-                .map_err(|e| PyRuntimeError::new_err(format!("Render failed: {}", e)))
-        })
-    }
-    
-    /// Render diagram to PNG bytes
-    #[pyo3(signature = (diagram_code, width=800, height=600, background="white", theme="default", scale=1.0))]
-    fn render_png<'py>(
+    /// Render diagram to specified format
+    #[pyo3(signature = (diagram_code, format="svg", width=800, height=600, background="white", theme="default", scale=1.0, quality=90))]
+    fn render<'py>(
         &self,
         py: Python<'py>,
         diagram_code: &str,
-        width: u32,
-        height: u32,
-        background: &str,
-        theme: &str,
-        scale: f32,
-    ) -> PyResult<Bound<'py, PyBytes>> {
-        let inner = self.inner.clone();
-        let diagram = diagram_code.to_string();
-        let bg = background.to_string();
-        let th = theme.to_string();
-        
-        let png_data = self.runtime.block_on(async move {
-            let mut renderer = inner.lock().await;
-            renderer.render_png(&diagram, width, height, &bg, &th, scale)
-                .await
-                .map_err(|e| PyRuntimeError::new_err(format!("Render failed: {}", e)))
-        })?;
-        
-        Ok(PyBytes::new_bound(py, &png_data))
-    }
-    
-    /// Render diagram to JPEG bytes
-    #[pyo3(signature = (diagram_code, width=800, height=600, background="white", theme="default", scale=1.0, quality=90))]
-    fn render_jpg<'py>(
-        &self,
-        py: Python<'py>,
-        diagram_code: &str,
-        width: u32,
-        height: u32,
-        background: &str,
-        theme: &str,
-        scale: f32,
-        quality: u8,
-    ) -> PyResult<Bound<'py, PyBytes>> {
-        let inner = self.inner.clone();
-        let diagram = diagram_code.to_string();
-        let bg = background.to_string();
-        let th = theme.to_string();
-        
-        let jpg_data = self.runtime.block_on(async move {
-            let mut renderer = inner.lock().await;
-            renderer.render_jpg(&diagram, width, height, &bg, &th, scale, quality)
-                .await
-                .map_err(|e| PyRuntimeError::new_err(format!("Render failed: {}", e)))
-        })?;
-        
-        Ok(PyBytes::new_bound(py, &jpg_data))
-    }
-    
-    /// Render diagram to WebP bytes
-    #[pyo3(signature = (diagram_code, width=800, height=600, background="white", theme="default", scale=1.0, quality=90.0))]
-    fn render_webp<'py>(
-        &self,
-        py: Python<'py>,
-        diagram_code: &str,
-        width: u32,
-        height: u32,
-        background: &str,
-        theme: &str,
-        scale: f32,
-        quality: f32,
-    ) -> PyResult<Bound<'py, PyBytes>> {
-        let inner = self.inner.clone();
-        let diagram = diagram_code.to_string();
-        let bg = background.to_string();
-        let th = theme.to_string();
-        
-        let webp_data = self.runtime.block_on(async move {
-            let mut renderer = inner.lock().await;
-            renderer.render_webp(&diagram, width, height, &bg, &th, scale, quality)
-                .await
-                .map_err(|e| PyRuntimeError::new_err(format!("Render failed: {}", e)))
-        })?;
-        
-        Ok(PyBytes::new_bound(py, &webp_data))
-    }
-    
-    /// Render diagram to file
-    #[pyo3(signature = (diagram_code, output_path, format="svg", width=800, height=600, background="white", theme="default", scale=1.0, quality=90))]
-    fn render_to_file(
-        &self,
-        diagram_code: &str,
-        output_path: &str,
         format: &str,
         width: u32,
         height: u32,
@@ -159,41 +52,80 @@ impl PyMermaidRenderer {
         theme: &str,
         scale: f32,
         quality: u8,
-    ) -> PyResult<()> {
+    ) -> PyResult<PyObject> {
+        let output_format = OutputFormat::from_str(format)
+            .ok_or_else(|| PyRuntimeError::new_err(format!("Unsupported format: {}", format)))?;
+        
+        let options = RenderOptions {
+            width,
+            height,
+            background: background.to_string(),
+            theme: theme.to_string(),
+            scale,
+            quality,
+        };
+        
         let inner = self.inner.clone();
         let diagram = diagram_code.to_string();
-        let bg = background.to_string();
-        let th = theme.to_string();
+        
+        let data = self.runtime.block_on(async move {
+            let mut renderer = inner.lock().await;
+            renderer.render(&diagram, output_format, &options)
+                .await
+                .map_err(|e| PyRuntimeError::new_err(format!("Render failed: {}", e)))
+        })?;
+        
+        // Return string for SVG, bytes for other formats
+        match output_format {
+            OutputFormat::Svg => {
+                let svg_str = String::from_utf8(data)
+                    .map_err(|e| PyRuntimeError::new_err(format!("Invalid UTF-8: {}", e)))?;
+                Ok(svg_str.into_py(py))
+            },
+            _ => Ok(PyBytes::new_bound(py, &data).into()),
+        }
+    }
+    
+    /// Render diagram to file
+    #[pyo3(signature = (diagram_code, output_path, format=None, width=800, height=600, background="white", theme="default", scale=1.0, quality=90))]
+    fn render_to_file(
+        &self,
+        diagram_code: &str,
+        output_path: &str,
+        format: Option<&str>,
+        width: u32,
+        height: u32,
+        background: &str,
+        theme: &str,
+        scale: f32,
+        quality: u8,
+    ) -> PyResult<()> {
+        // Determine format from file extension if not provided
+        let fmt = format.unwrap_or_else(|| {
+            output_path.rsplit('.').next().unwrap_or("svg")
+        });
+        
+        let output_format = OutputFormat::from_str(fmt)
+            .ok_or_else(|| PyRuntimeError::new_err(format!("Unsupported format: {}", fmt)))?;
+        
+        let options = RenderOptions {
+            width,
+            height,
+            background: background.to_string(),
+            theme: theme.to_string(),
+            scale,
+            quality,
+        };
+        
+        let inner = self.inner.clone();
+        let diagram = diagram_code.to_string();
         let path = output_path.to_string();
-        let fmt = format.to_string();
         
         self.runtime.block_on(async move {
             let mut renderer = inner.lock().await;
-            
-            let data = match fmt.as_str() {
-                "svg" => {
-                    let svg = renderer.render_svg(&diagram, width, height, &bg, &th, scale)
-                        .await
-                        .map_err(|e| PyRuntimeError::new_err(format!("Render failed: {}", e)))?;
-                    svg.into_bytes()
-                },
-                "png" => {
-                    renderer.render_png(&diagram, width, height, &bg, &th, scale)
-                        .await
-                        .map_err(|e| PyRuntimeError::new_err(format!("Render failed: {}", e)))?
-                },
-                "jpg" | "jpeg" => {
-                    renderer.render_jpg(&diagram, width, height, &bg, &th, scale, quality)
-                        .await
-                        .map_err(|e| PyRuntimeError::new_err(format!("Render failed: {}", e)))?
-                },
-                "webp" => {
-                    renderer.render_webp(&diagram, width, height, &bg, &th, scale, quality as f32)
-                        .await
-                        .map_err(|e| PyRuntimeError::new_err(format!("Render failed: {}", e)))?
-                },
-                _ => return Err(PyRuntimeError::new_err(format!("Unsupported format: {}", fmt))),
-            };
+            let data = renderer.render(&diagram, output_format, &options)
+                .await
+                .map_err(|e| PyRuntimeError::new_err(format!("Render failed: {}", e)))?;
             
             std::fs::write(&path, data)
                 .map_err(|e| PyRuntimeError::new_err(format!("Failed to write file: {}", e)))?;
