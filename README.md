@@ -16,7 +16,7 @@ CLI tool for rendering Mermaid diagrams using Rust and deno_core.
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/mermaid-it.git
+git clone https://github.com/dreampuf/mermaid-it.git
 cd mermaid-it
 cargo build --release
 # Binary at: target/release/mermaid-it
