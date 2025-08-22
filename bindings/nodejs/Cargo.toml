@@ -1,0 +1,22 @@
+[package]
+name = "mermaid-it-nodejs"
+version = "0.1.0"
+edition = "2021"
+authors = ["drempuf <soddyque@gmail.com>"]
+description = "Node.js bindings for mermaid-it"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+mermaid-it = { path = "../..", features = ["nodejs"] }
+napi = { version = "2", features = ["async", "napi6"] }
+napi-derive = "2"
+base64 = "0.22"
+
+[build-dependencies]
+napi-build = "2"
+
+[profile.release]
+lto = true
