@@ -1,0 +1,36 @@
+namespace mermaid_it {
+  [Throws=MermaidError]
+  MermaidRenderer create_renderer();
+};
+
+[Error]
+interface MermaidError {
+  RenderError(string message);
+  InvalidFormat(string format);
+  IoError(string message);
+};
+
+dictionary RenderOptions {
+  string format = "svg";
+  u32 width = 800;
+  u32 height = 600;
+  string background = "white";
+  string theme = "default";
+  f32 scale = 1.0;
+  u8 quality = 90;
+};
+
+interface MermaidRenderer {
+  constructor();
+  
+  [Throws=MermaidError]
+  bytes render(string diagram_code, RenderOptions options);
+  
+  [Throws=MermaidError]
+  string render_to_string(string diagram_code, RenderOptions options);
+  
+  [Throws=MermaidError]
+  void render_to_file(string diagram_code, string output_path, RenderOptions options);
+  
+  void set_custom_mermaid(string js_content);
+};

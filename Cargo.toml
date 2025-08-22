@@ -8,7 +8,7 @@ license = "MIT"
 
 [lib]
 name = "mermaid_it"
-crate-type = ["cdylib", "rlib"]
+crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"], optional = true }
@@ -26,11 +26,12 @@ webp = "0.3"
 futures = "0.3"
 reqwest = { version = "0.12", features = ["blocking"] }
 include_dir = "0.7"
+thiserror = "1.0"
 
-# Python bindings
-pyo3 = { version = "0.22", features = ["extension-module", "abi3-py39"], optional = true }
+# UniFFI for multi-language bindings
+uniffi = { version = "0.28", optional = true }
 
-# WASM bindings
+# WASM bindings (kept for web compatibility)
 wasm-bindgen = { version = "0.2", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
 js-sys = { version = "0.3", optional = true }
@@ -40,12 +41,12 @@ serde-wasm-bindgen = { version = "0.6", optional = true }
 [build-dependencies]
 reqwest = { version = "0.12", features = ["blocking"] }
 anyhow = "1.0"
-pyo3-build-config = { version = "0.22", optional = true }
+uniffi = { version = "0.28", features = ["build"] }
 
 [features]
 default = ["cli"]
 cli = ["clap"]
-python = ["pyo3", "pyo3-build-config"]
+uniffi-bindings = ["uniffi"]
 wasm = ["wasm-bindgen", "wasm-bindgen-futures", "js-sys", "web-sys", "serde-wasm-bindgen"]
 
 [[bin]]
@@ -53,10 +54,14 @@ name = "mermaid-it"
 path = "src/main.rs"
 required-features = ["cli"]
 
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi_bindgen.rs"
+required-features = ["uniffi-bindings"]
+
 [workspace]
 members = [
     ".",
-    "bindings/python",
     "bindings/wasm"
 ]
 

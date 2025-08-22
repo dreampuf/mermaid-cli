@@ -256,9 +256,13 @@ fn svg_to_gif(svg_data: &str, width: u32, height: u32, scale: f32) -> Result<Vec
     Ok(gif_data)
 }
 
-// Python bindings
-#[cfg(feature = "python")]
-pub mod python_bindings;
+// UniFFI bindings for multiple languages
+#[cfg(feature = "uniffi-bindings")]
+pub mod uniffi_bindings;
+
+// C FFI bindings for Go and other languages
+#[cfg(feature = "uniffi-bindings")]
+pub mod c_bindings;
 
 // WASM bindings (works for both browser and Node.js)
 #[cfg(feature = "wasm")]
