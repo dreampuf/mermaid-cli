@@ -1,6 +1,6 @@
 # mermaid-it
 
-A powerful CLI tool to render Mermaid diagrams using Rust and deno_core as the JavaScript runtime engine.
+A powerful CLI tool and library for rendering Mermaid diagrams using Rust and deno_core as the JavaScript runtime engine.
 
 ## Features
 
@@ -10,31 +10,61 @@ A powerful CLI tool to render Mermaid diagrams using Rust and deno_core as the J
 - 🔧 **Customizable** - Support for custom Mermaid.js versions
 - 📏 **Configurable output** - Set dimensions, scale, background, and themes
 - 🖥️ **Cross-platform** - Works on Linux, macOS, and Windows
+- 🌍 **Multi-language bindings** - Python, Ruby, Kotlin, Swift, Go, Java via UniFFI
+- 🌐 **Web support** - JavaScript/TypeScript via WebAssembly
+
+## Language Bindings
+
+Mermaid-it provides native bindings for multiple programming languages through **UniFFI**:
+
+| Language | Status | Package Manager | Import |
+|----------|--------|----------------|---------|
+| **Python** | ✅ Ready | PyPI | `import mermaid_it` |
+| **Ruby** | ✅ Ready | RubyGems | `require 'mermaid_it'` |
+| **Kotlin** | ✅ Ready | Maven | `import mermaid_it.*` |
+| **Swift** | ✅ Ready | SwiftPM | `import MermaidIt` |
+| **Go** | ✅ Ready | Go Modules | `import "github.com/dreampuf/mermaid-it/bindings/go"` |
+| **Java** | ✅ Ready | Maven (via Kotlin) | `import mermaid_it.*;` |
+| **JavaScript** | ✅ Ready | npm | `import { MermaidRenderer } from 'mermaid-it-wasm'` |
+
+For detailed language binding documentation, see [UNIFFI_BINDINGS.md](UNIFFI_BINDINGS.md).
 
 ## Installation
 
-### From Source
+### CLI Tool
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/mermaid-it.git
-cd mermaid-it
+# From source
+cargo install --path . --features cli
 
-# Build the project
-cargo build --release
-
-# The binary will be available at target/release/mermaid-it
+# Or download pre-built binary from releases
 ```
 
-### Install Globally
+### Language-Specific Installation
 
+#### Python
 ```bash
-cargo install --path .
+pip install mermaid-it
 ```
 
-## Usage
+#### Ruby
+```bash
+gem install mermaid-it
+```
 
-### Basic Usage
+#### Go
+```bash
+go get github.com/dreampuf/mermaid-it/bindings/go
+```
+
+#### JavaScript/TypeScript
+```bash
+npm install mermaid-it-wasm
+```
+
+## Quick Start
+
+### CLI Usage
 
 ```bash
 # Render a Mermaid diagram from a file
@@ -43,63 +73,68 @@ mermaid-it diagram.mmd
 # Render from stdin
 echo "graph TD; A-->B;" | mermaid-it -
 
-# Specify output file
-mermaid-it diagram.mmd -o output.svg
-```
-
-### Output Formats
-
-```bash
-# Generate SVG (default)
-mermaid-it diagram.mmd -o output.svg
-
-# Generate PNG
+# Specify output file and format
 mermaid-it diagram.mmd -o output.png -f png
-
-# Generate JPG
-mermaid-it diagram.mmd -o output.jpg -f jpg
-
-# Generate WebP
-mermaid-it diagram.mmd -o output.webp -f webp
-
-# Generate GIF
-mermaid-it diagram.mmd -o output.gif -f gif
 ```
 
-### Customization Options
+### Library Usage
 
-```bash
-# Set custom dimensions
-mermaid-it diagram.mmd -W 1200 -H 800 -o output.png -f png
+#### Python
+```python
+import mermaid_it
 
-# Set scale factor
-mermaid-it diagram.mmd --scale 2.0 -o output.png -f png
-
-# Set background color
-mermaid-it diagram.mmd --background "#f0f0f0" -o output.svg
-
-# Use a different theme
-mermaid-it diagram.mmd --theme dark -o output.svg
-
-# Use custom Mermaid.js file
-mermaid-it diagram.mmd --custom-mermaid ./custom-mermaid.js -o output.svg
+renderer = mermaid_it.MermaidRenderer()
+svg = renderer.render_to_string("graph TD; A-->B;", mermaid_it.RenderOptions())
 ```
 
-### Command-Line Options
+#### Ruby
+```ruby
+require 'mermaid_it'
+
+renderer = MermaidIt::MermaidRenderer.new
+svg = renderer.render_to_string("graph TD; A-->B;", MermaidIt::RenderOptions.new)
+```
+
+#### Go
+```go
+import "github.com/dreampuf/mermaid-it/bindings/go"
+
+renderer, _ := mermaid.NewRenderer()
+defer renderer.Close()
+svg, _ := renderer.RenderToString("graph TD; A-->B;", mermaid.DefaultOptions())
+```
+
+#### JavaScript
+```javascript
+import { MermaidRenderer } from 'mermaid-it-wasm';
+
+const renderer = new MermaidRenderer();
+const svg = await renderer.render("graph TD; A-->B;", { format: 'svg' });
+```
+
+## Unified API
+
+All language bindings share the same consistent API:
 
 ```
-Options:
-  -o, --output <OUTPUT>              Output file path [default: output.svg]
-  -f, --format <FORMAT>              Output format [default: svg] [possible values: svg, png, jpg, webp, gif]
-  -W, --width <WIDTH>                Width of the output image in pixels [default: 800]
-  -H, --height <HEIGHT>              Height of the output image in pixels [default: 600]
-  -b, --background <BACKGROUND>      Background color (CSS color value) [default: white]
-  -t, --theme <THEME>                Mermaid theme [default: default]
-  -s, --scale <SCALE>                Scale factor for the output [default: 1.0]
-  -c, --custom-mermaid <PATH>        Path to custom Mermaid.js file
-  -d, --debug                        Enable debug output
-  -h, --help                         Print help
-  -V, --version                      Print version
+// Create renderer
+renderer = new MermaidRenderer()
+
+// Render options
+options = {
+  format: "png",      // svg, png, jpg, jpeg, webp, gif
+  width: 800,         // pixels
+  height: 600,        // pixels
+  background: "white", // CSS color
+  theme: "default",   // default, dark, forest, neutral
+  scale: 1.0,         // scale factor
+  quality: 90         // JPEG/WebP quality (0-100)
+}
+
+// Render methods
+bytes = renderer.render(diagram, options)           // Returns raw bytes
+string = renderer.render_to_string(diagram, options) // Returns string (for SVG)
+renderer.render_to_file(diagram, path, options)     // Saves to file
 ```
 
 ## Examples
@@ -182,17 +217,17 @@ mermaid-it diagram.mmd --custom-mermaid ./mermaid.min.js -o output.svg
 ### Building from Source
 
 ```bash
-# Debug build
-cargo build
+# Build CLI tool
+cargo build --release --features cli
 
-# Release build (optimized)
-cargo build --release
+# Build with UniFFI bindings
+cargo build --release --features uniffi-bindings
+
+# Generate all language bindings
+./generate_bindings.sh
 
 # Run tests
-cargo test
-
-# Run with debug output
-cargo run -- diagram.mmd -d
+cargo test --all-features
 ```
 
 ### Project Structure
@@ -200,14 +235,25 @@ cargo run -- diagram.mmd -d
 ```
 mermaid-it/
 ├── Cargo.toml          # Project dependencies
-├── build.rs            # Build script to download and embed Mermaid.js
+├── build.rs            # Build script
 ├── src/
-│   ├── main.rs         # Main application entry point
+│   ├── main.rs         # CLI entry point
+│   ├── lib.rs          # Library interface
 │   ├── cli.rs          # CLI argument parsing
-│   ├── renderer.rs     # Mermaid rendering logic using deno_core
-│   └── js/
-│       └── init.js     # JavaScript runtime initialization
-└── README.md           # This file
+│   ├── renderer.rs     # Core rendering logic
+│   ├── uniffi_bindings.rs # UniFFI binding definitions
+│   ├── c_bindings.rs   # C FFI for Go
+│   ├── wasm_bindings.rs # WASM bindings
+│   └── mermaid_it.udl  # UniFFI interface definition
+├── bindings/           # Generated language bindings
+│   ├── python/
+│   ├── ruby/
+│   ├── kotlin/
+│   ├── swift/
+│   ├── go/
+│   └── wasm/
+├── examples/           # Example code for each language
+└── packaging/          # Package configurations
 ```
 
 ## Troubleshooting

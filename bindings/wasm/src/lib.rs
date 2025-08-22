@@ -1,0 +1,1 @@
+pub use mermaid_it::wasm_bindings::*;

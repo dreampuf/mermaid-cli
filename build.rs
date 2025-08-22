@@ -1,40 +1,49 @@
 use anyhow::Result;
+use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
 
 fn main() -> Result<()> {
-    println!("cargo:rerun-if-changed=build.rs");
+    // Download and embed Mermaid.js
+    download_mermaid()?;
     
-    let out_dir = std::env::var("OUT_DIR")?;
-    let mermaid_path = Path::new(&out_dir).join("mermaid.min.js");
-    
-    // Check if we already have the file
-    if !mermaid_path.exists() {
-        println!("Downloading Mermaid.js...");
-        
-        // Download the latest stable version of Mermaid.js from CDN
-        let mermaid_url = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js";
-        let response = reqwest::blocking::get(mermaid_url)?;
-        
-        if !response.status().is_success() {
-            panic!("Failed to download Mermaid.js: {}", response.status());
-        }
-        
-        let content = response.text()?;
-        fs::write(&mermaid_path, content)?;
-        
-        println!("Mermaid.js downloaded successfully");
+    // Generate UniFFI bindings if feature is enabled
+    #[cfg(feature = "uniffi-bindings")]
+    {
+        uniffi::generate_scaffolding("src/mermaid_it.udl")?;
     }
     
-    // Generate a constant with the path to the embedded file
+    Ok(())
+}
+
+fn download_mermaid() -> Result<()> {
+    let out_dir = PathBuf::from(env::var("OUT_DIR")?);
+    let mermaid_path = out_dir.join("mermaid.min.js");
+    let const_path = out_dir.join("mermaid_const.rs");
+    
+    // Check if we already have the file
+    if mermaid_path.exists() && const_path.exists() {
+        println!("cargo:rerun-if-changed=build.rs");
+        return Ok(());
+    }
+    
+    println!("cargo:warning=Downloading Mermaid.js...");
+    
+    // Download Mermaid.js from CDN
+    let url = "https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js";
+    let response = reqwest::blocking::get(url)?;
+    let mermaid_content = response.text()?;
+    
+    // Save the file
+    fs::write(&mermaid_path, &mermaid_content)?;
+    
+    // Generate Rust constant
     let const_content = format!(
-        r#"pub const MERMAID_JS: &str = include_str!("{}");
-"#,
-        mermaid_path.display()
+        r#"pub const MERMAID_JS: &str = r###"{}"###;"#,
+        mermaid_content
     );
+    fs::write(&const_path, const_content)?;
     
-    let const_path = Path::new(&out_dir).join("mermaid_const.rs");
-    fs::write(const_path, const_content)?;
-    
+    println!("cargo:rerun-if-changed=build.rs");
     Ok(())
 }
